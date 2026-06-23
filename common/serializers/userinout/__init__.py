@@ -1,0 +1,2 @@
+from .userinout_serializer import UserInOutSerializer
+from .bulk_userinout_serializer import BulkUserInOutSerializer

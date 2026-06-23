@@ -1,0 +1,1 @@
+from .companyfunctionality_serializer import CompanyFunctionalitySerializer

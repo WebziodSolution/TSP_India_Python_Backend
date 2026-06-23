@@ -1,0 +1,1 @@
+from .holidaytemplatedetails import HolidayTemplateDetails

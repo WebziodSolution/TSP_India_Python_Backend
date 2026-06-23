@@ -1,0 +1,1 @@
+from .holidaytemplatedetails_serializer import HolidayTemplateDetailsSerializer
