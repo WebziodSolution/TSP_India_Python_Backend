@@ -6,6 +6,7 @@ from common.models.salarystatementhistory.salarystatementhistory import SalarySt
 from common.models.companydetails.companydetails import CompanyDetails
 from common.models.companyemployee.companyemployee import CompanyEmployee
 from common.models.userinout.userinout import UserInOut
+from common.models import EmployeeLeaveMaster
 from common.service import CommonService
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ class SalaryStatementHistoryService:
             "generatedBy": entity.companyEmployee.employeeId if entity.companyEmployee else None,
             "deductionsList": self.calculateTotalAllowanceAndDeductions(entity.employeeId, "Deduction"),
             "allowanceList": self.calculateTotalAllowanceAndDeductions(entity.employeeId, "Allowance"),
+            "used_leave": EmployeeLeaveMaster.objects.filter(companyEmployee_id=entity.employeeId).values_list('usedLeave', flat=True).first(),
         }
 
     def calculateTotalAllowanceAndDeductions(self, user_id: int, type_str: str) -> list:
@@ -151,6 +153,14 @@ class SalaryStatementHistoryService:
                     for uio in user_in_outs:
                         uio.isSalaryGenerate = 1
                         uio.save()
+
+                # Update EmployeeLeaveMaster usedLeave
+                used_leave_val = dto.get("used_leave")
+                if used_leave_val is not None:
+                    elm = EmployeeLeaveMaster.objects.filter(companyEmployee_id=dto.get("employeeId")).first()
+                    if elm:
+                        elm.usedLeave = used_leave_val
+                        elm.save()
 
                 entity = SalaryStatementHistory.objects.filter(
                     employeeId=dto.get("employeeId"),

@@ -27,3 +27,4 @@ class EmployeeSalaryStatementSerializer(serializers.Serializer):
     employeeType = serializers.CharField(required=False, allow_null=True)
     totalAllowance = serializers.IntegerField(required=False, allow_null=True)
     deduction = serializers.IntegerField(required=False, allow_null=True)
+    used_leave = serializers.IntegerField(required=False, allow_null=True)

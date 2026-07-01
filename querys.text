@@ -1,0 +1,10 @@
+=================== 01-07-2026 =================
+CREATE TABLE `calcsalary`.`leave_type` (`id` INT NOT NULL AUTO_INCREMENT , `name` INT NOT NULL , `company_id` INT NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;
+
+ALTER TABLE `leave_type` ADD FOREIGN KEY (`company_id`) REFERENCES `company_details`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
+
+ALTER TABLE `leave_type` CHANGE `name` `name` VARCHAR(250) NOT NULL;
+
+CREATE TABLE `calcsalary`.`employee_leave_master` (`id` INT NOT NULL AUTO_INCREMENT , `employee_id` INT NOT NULL , `leave_type_id` INT NOT NULL , `total_leave` INT NOT NULL , `used_leave` INT NOT NULL , PRIMARY KEY (`id`)) ENGINE = InnoDB;
+
+ALTER TABLE `employee_leave_master` ADD FOREIGN KEY (`employee_id`) REFERENCES `company_employees`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT; ALTER TABLE `employee_leave_master` ADD FOREIGN KEY (`leave_type_id`) REFERENCES `leave_type`(`id`) ON DELETE CASCADE ON UPDATE RESTRICT;

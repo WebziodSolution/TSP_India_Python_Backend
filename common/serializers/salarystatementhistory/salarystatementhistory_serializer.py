@@ -34,3 +34,5 @@ class SalaryStatementHistorySerializer(serializers.Serializer):
     generatedBy = serializers.IntegerField(required=False, allow_null=True)
     deductionsList = serializers.JSONField(required=False, allow_null=True)  # Nested: List<DeductionsDto>
     allowanceList = serializers.JSONField(required=False, allow_null=True)  # Nested: List<DeductionsDto>
+    used_leave = serializers.IntegerField(required=False, allow_null=True)
+

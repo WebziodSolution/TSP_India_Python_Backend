@@ -17,11 +17,13 @@ from .countrytostate.countrytostate import CountryToState
 from .deductions.deductions import Deductions
 from .department.department import Department
 from .employeebackaccountinfo.employeebackaccountinfo import EmployeeBackAccountInfo
+from .employeeleavemaster.employeeleavemaster import EmployeeLeaveMaster
 from .employeetype.employeetype import EmployeeType
 from .employmentinfo.employmentinfo import EmploymentInfo
 from .functionality.functionality import Functionality
 from .holidaytemplatedetails.holidaytemplatedetails import HolidayTemplateDetails
 from .holidaytemplates.holidaytemplates import HolidayTemplates
+from .leavetype.leavetype import LeaveType
 from .locations.locations import Locations
 from .module.module import Module
 from .moduleactions.moduleactions import ModuleActions

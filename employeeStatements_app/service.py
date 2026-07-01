@@ -9,15 +9,18 @@ from common.models import (
     CompanyEmployee,
     UserInOut,
     AttendancePenaltyRules,
-    Deductions
+    Deductions,
+    EmployeeLeaveMaster
 )
 from holidayTemplates_app.service import HolidayTemplatesService
+from common.service import CommonService
 
 logger = logging.getLogger(__name__)
 
 class EmployeeSalaryStatementService:
     def __init__(self):
         self.holiday_templates_service = HolidayTemplatesService()
+        self.common_service = CommonService()
 
     def get_employee_salary_statements(self, request_dto: dict) -> list:
         try:
@@ -82,22 +85,28 @@ class EmployeeSalaryStatementService:
             "employeeId": company_employee.employeeId,
             "companyId": company_employee.companyDetails.id if company_employee.companyDetails else None,
             "employeeName": f"{company_employee.firstName or ''} {company_employee.lastName or ''}".strip(),
-            "basicSalary": company_employee.basicSalary,
-            "departmentId": company_employee.department.id if company_employee.department else None,
-            "departmentName": company_employee.department.departmentName if company_employee.department else None
         }
 
+        if company_employee.basicSalary is not None:
+            dto["basicSalary"] = company_employee.basicSalary
+
+        if company_employee.department:
+            dto["departmentId"] = company_employee.department.id
+            dto["departmentName"] = company_employee.department.departmentName
+
         # 2. Fetch Holiday Dates
-        holiday_dates = []
+        holiday_dates = set()
         if company_employee.holidayTemplates:
             try:
                 holiday_template = self.holiday_templates_service.get_holiday_template_by_id(company_employee.holidayTemplates.id)
                 if holiday_template and holiday_template.get("holidayTemplateDetailsList"):
                     for detail in holiday_template["holidayTemplateDetailsList"]:
                         detail_date = detail.get("date")
-                        if detail_date and len(detail_date) >= 10:
-                            # Extract dd/MM/yyyy
-                            holiday_dates.append(detail_date[:10])
+                        if detail_date:
+                            utc_date = self.common_service.convert_string_to_date(detail_date)
+                            if utc_date:
+                                local_holiday = utc_date.astimezone(tz).date()
+                                holiday_dates.add(local_holiday)
             except Exception as e:
                 logger.error(f"Error fetching holiday template details: {e}")
 
@@ -125,10 +134,9 @@ class EmployeeSalaryStatementService:
         total_worked_millis = 0
         penalty_amount = 0
         adjusted_work_minutes_total = 0
-        last_inout_id = None
 
         for user_in_out in user_in_out_list:
-            last_inout_id = user_in_out.id
+            dto["clockInOutId"] = user_in_out.id
             time_in = user_in_out.timeIn
             time_out = user_in_out.timeOut
 
@@ -159,8 +167,6 @@ class EmployeeSalaryStatementService:
                 if company_employee.earlyExitPenaltyRule is True and company_employee.companyShift:
                     if company_employee.companyShift.shiftType == "Time Based":
                         penalty_amount += self.calculate_early_exit_penalty(company_employee, time_out, tz)
-
-        dto["clockInOutId"] = last_inout_id
 
         # --- 6. FIX: Calculate Final Paid Days ---
         # Remove any day the employee actually worked from the paid off-days pool.
@@ -207,43 +213,13 @@ class EmployeeSalaryStatementService:
             monthly_salary = company_employee.basicSalary if company_employee.basicSalary is not None else 0
             daily_rate = monthly_salary / 30.0
 
-            # Determine if this is a full month (1st to last day of that month)
-            import calendar
-            last_day_of_month = calendar.monthrange(start_local_date.year, start_local_date.month)[1]
-            is_full_month = (
-                start_local_date.day == 1 and 
-                end_local_date.day == last_day_of_month and 
-                start_local_date.month == end_local_date.month and 
-                start_local_date.year == end_local_date.year
-            )
-
             # Re-calculate paid off-days (weekly offs + holidays) for this period
             paid_off_days = self.calculate_paid_days(
                 start_local_date, end_local_date, company_employee.weeklyOff, holiday_dates
             )
-            paid_off_days.difference_update(actual_work_days)
-
-            if is_full_month:
-                # Full month: deduct only unpaid absences
-                all_days_in_month = set()
-                curr = start_local_date
-                while curr <= end_local_date:
-                    all_days_in_month.add(curr)
-                    curr += timedelta(days=1)
-
-                all_days_in_month.difference_update(paid_off_days)
-                all_days_in_month.difference_update(actual_work_days)
-                unpaid_absences = len(all_days_in_month)
-
-                deduction_val = daily_rate * unpaid_absences
-                base_salary = int(max(monthly_salary - deduction_val, 0))
-            else:
-                # Partial month: pro-rate based on total distinct days that are either worked or paid off
-                total_paid_days = set(actual_work_days)
-                total_paid_days.update(paid_off_days)
-                paid_day_count = len(total_paid_days)
-
-                base_salary = int(round(daily_rate * paid_day_count))
+            
+            paid_day_count = min(len(actual_work_days) + len(paid_off_days), 30)
+            base_salary = int(round(daily_rate * paid_day_count))
 
         other_deductions = self.calculate_canteen_deductions(company_employee, daily_worked_minutes, actual_work_days) + penalty_amount
         total_earnings = base_salary + ot_amount_final + total_allowance
@@ -294,6 +270,32 @@ class EmployeeSalaryStatementService:
         dto["netSalary"] = total_earnings - total_deductions
         dto["employeeType"] = company_employee.employeeType.name if company_employee.employeeType else None
 
+        # Calculate absent_count (same logic as in get_all_entries_grouped_by_user)
+        absent_count = 0
+        curr = start_local_date
+        while curr <= end_local_date:
+            if curr not in actual_work_days:
+                is_holiday = curr in holiday_dates
+                is_weekly_off = False
+                if not is_holiday and company_employee.weeklyOff:
+                    is_weekly_off = self.is_weekly_off_day(curr, company_employee.weeklyOff)
+                
+                if not is_holiday and not is_weekly_off:
+                    absent_count += 1
+            curr += timedelta(days=1)
+
+        # Get record by userId from employee_leave_master table
+        elm = EmployeeLeaveMaster.objects.filter(companyEmployee_id=company_employee.employeeId).first()
+        if elm:
+            current_used = elm.usedLeave or 0
+            total_leave = elm.totalLeave
+            new_used = current_used + absent_count
+            if total_leave is not None and new_used > total_leave:
+                new_used = total_leave
+            dto["used_leave"] = new_used
+        else:
+            dto["used_leave"] = absent_count
+
         # Print/Log statements matching Java debugging output
         logger.info(f"============= Debugging Employee Salary Statement for Employee: {company_employee.userName} ================")
         logger.info(f"Basic Salary: {company_employee.basicSalary}")
@@ -322,10 +324,9 @@ class EmployeeSalaryStatementService:
         curr = start_local_date
         while curr <= end_local_date:
             is_off_day = False
-            formatted_current_date = curr.strftime("%d/%m/%Y")
             
             # 1. Check if it's a Holiday
-            if holiday_dates and formatted_current_date in holiday_dates:
+            if holiday_dates and curr in holiday_dates:
                 is_off_day = True
 
             # 2. Check if it's a Weekly Off
