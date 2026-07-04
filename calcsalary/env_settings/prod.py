@@ -2,17 +2,17 @@ username = "admin"
 password = "01eMatrix007!"
 host = "localhost"
 port = "3306"
-db_name = "calcsalary"
+db_name = "ematrix_calcsalary"
 
 jwt_secret_key = "462D4A614E645267556B58703273357638782F413F4428472B4B625065536856"
 jwt_expiration_hours = 10
 
-siteUrl="https://devwebapp.calcsalary.com/"
+siteUrl="https://present.ematrixinfotech.com/"
 
 companyId=108108
 
-timeSheetProDrive="/devwebapp_calcsalary/devwebapp.calcsalary.com/usercontent/"
-imageContextPath="https://devwebapp.calcsalary.com/usercontent/"
+timeSheetProDrive="/ematrix_calcsalary/webapp/usercontent/"
+imageContextPath="https://present.ematrixinfotech.com/usercontent/"
 
 #Email Configuration
 mail_default_encoding="UTF-8"
