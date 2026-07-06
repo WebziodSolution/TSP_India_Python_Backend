@@ -245,10 +245,6 @@ SPECTACULAR_SETTINGS = {
         }
     }
 }
-CSRF_TRUSTED_ORIGINS = [
-    'https://present.ematrixinfotech.com',
-    'http://localhost:3000',    
-]
 # Email Settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = locals().get('mail_host', 'smtp.gmail.com')

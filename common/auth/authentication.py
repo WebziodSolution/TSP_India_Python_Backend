@@ -5,7 +5,8 @@ from rest_framework.exceptions import AuthenticationFailed
 from common.models import Users, CompanyEmployee
 from .jwt_token_util import JwtTokenUtil
 import jwt
-
+import logging
+logger = logging.getLogger(__name__)
 # List of public endpoints that bypass authentication
 PUBLIC_URL_PATTERNS = [
     r'^/location',
@@ -43,11 +44,14 @@ class JWTAuthentication(BaseAuthentication):
         if not auth_header:
             if self.is_public_path(path):
                 return None
+            logger.error("[DEBUG AUTH] No auth header and not public path. Access Denied.")
             raise AuthenticationFailed("Access Denied")
 
         if not auth_header.startswith('Bearer '):
             if self.is_public_path(path):
+                logger.error("[DEBUG AUTH] Public path, invalid prefix, allowing.")
                 return None
+            logger.error("[DEBUG AUTH] Auth header does not start with Bearer. Access Denied.")
             raise AuthenticationFailed("Access Denied")
 
         token = auth_header[7:]
@@ -63,16 +67,12 @@ class JWTAuthentication(BaseAuthentication):
             # Try loading user from Users table first
             user = None
             try:
-                user = Users.objects.filter(userId=user_id).first()
-            except Exception:
-                pass
-
-            # Try loading user from CompanyEmployee table next
-            if not user:
-                try:
+                if company_id == None:
+                    user = Users.objects.filter(userId=user_id).first()
+                else:
                     user = CompanyEmployee.objects.filter(employeeId=user_id).first()
-                except Exception:
-                    pass
+            except Exception as e:
+                pass
 
             if not user:
                 raise AuthenticationFailed("Access Denied")
@@ -84,6 +84,7 @@ class JWTAuthentication(BaseAuthentication):
             }
 
             if not self.jwt_util.validate_token(token, user_data):
+                logger.error("[DEBUG AUTH] validate_token returned False. Access Denied.")
                 raise AuthenticationFailed("Access Denied")
 
             # Attach context metadata to the request for view controller access
@@ -93,9 +94,12 @@ class JWTAuthentication(BaseAuthentication):
             # Django views expect request.user to be authenticated
             return (user, token)
 
-        except jwt.ExpiredSignatureError:
+        except jwt.ExpiredSignatureError as e:
+            logger.error(f"[DEBUG AUTH] Token expired: {e}")
             raise AuthenticationFailed("Access Denied")
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            logger.error(f"[DEBUG AUTH] Invalid token: {e}")
             raise AuthenticationFailed("Access Denied")
-        except Exception:
+        except Exception as e:
+            logger.error(f"[DEBUG AUTH] General exception in authenticate: {e}")
             raise AuthenticationFailed("Access Denied")
