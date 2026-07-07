@@ -9,3 +9,16 @@ class OvertimeRulesSerializer(serializers.Serializer):
     companyId = serializers.IntegerField(required=False, allow_null=True)
     createdBy = serializers.IntegerField(required=False, allow_null=True)
     createdByUserName = serializers.CharField(required=False, allow_null=True)
+
+    def to_internal_value(self, data):
+        if hasattr(data, 'dict'):
+            data = data.dict()
+        else:
+            data = dict(data)
+        
+        for field_name, field in self.fields.items():
+            if not isinstance(field, serializers.CharField):
+                if field_name in data and data[field_name] == "":
+                    data[field_name] = None
+                    
+        return super().to_internal_value(data)

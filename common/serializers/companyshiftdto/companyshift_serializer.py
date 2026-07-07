@@ -5,8 +5,8 @@ class CompanyShiftSerializer(serializers.Serializer):
     companyId = serializers.IntegerField(required=False, allow_null=True)
     shiftName = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     shiftType = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    startTime = serializers.JSONField(required=False, allow_null=True)
-    endTime = serializers.JSONField(required=False, allow_null=True)
+    startTime = serializers.DateTimeField(required=False, allow_null=True)
+    endTime = serializers.DateTimeField(required=False, allow_null=True)
     hours = serializers.FloatField(required=False, allow_null=True)
     totalHours = serializers.FloatField(required=False, allow_null=True)
 

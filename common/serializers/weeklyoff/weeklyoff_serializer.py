@@ -3,7 +3,7 @@ from rest_framework import serializers
 class WeeklyOffSerializer(serializers.Serializer):
     id = serializers.IntegerField(required=False, allow_null=True)
     name = serializers.CharField(required=True)
-    description = serializers.CharField(required=False, allow_null=True)
+    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     isDefault = serializers.IntegerField(required=False, allow_null=True)
     sundayAll = serializers.BooleanField(default=False)
     sunday1st = serializers.BooleanField(default=False)
