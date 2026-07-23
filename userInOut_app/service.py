@@ -581,7 +581,8 @@ class UserInOutService:
         session_duration = time_out_ist - time_in_ist
 
         if session_duration > allowed_limit:
-            next_day_time_in = time_out + timedelta(days=1)
+            # next_day_time_in = time_out + timedelta(days=1)
+            next_day_time_in = time_out
             self.create_user_inout(employee.employeeId, location_id, company_id, next_day_time_in)
             return True
         else:
