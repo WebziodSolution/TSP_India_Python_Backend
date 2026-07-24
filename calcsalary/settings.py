@@ -37,7 +37,7 @@ SECRET_KEY = 'django-insecure-&@ep7m7+%-$abrv-q=5+uw32evl85dprn&psp!u+8i!xu)q5)o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -92,6 +92,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'common.middleware.ClientIPRestrictionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -133,8 +134,8 @@ WSGI_APPLICATION = 'calcsalary.wsgi.application'
 
 
 # Environment Selection & Configurations
-ENV = "local"
-# ENV = "prod"
+# ENV = "local"
+ENV = "prod"
 if ENV == "local":
     DEBUG = True
     from .env_settings.local import *
@@ -254,3 +255,8 @@ EMAIL_HOST_USER = locals().get('mail_username', '')
 EMAIL_HOST_PASSWORD = locals().get('mail_password', '')
 DEFAULT_FROM_EMAIL = locals().get('mail_from', '')
 EMAIL_FROM_NAME = locals().get('mail_fromName', 'TimeSheetsPro-Support')
+
+# Client IP Restriction Settings
+RESTRICT_IPS = locals().get('restrict_ips', True)
+ALLOWED_CLIENT_IPS = ['127.0.0.1', '::1', '150.129.166.38']
+ALLOWED_CLIENT_IP_PREFIXES = ['192.168.1.', '150.129.166.']

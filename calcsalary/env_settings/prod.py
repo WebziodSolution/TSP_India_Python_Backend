@@ -28,3 +28,6 @@ mail_smtp_starttls_enable=True
 mail_smtp_ssl_trust="smtp.gmail.com"
 mail_from="webzoidsolution@gmail.com"
 mail_fromName="TimeSheetsPro-Support"
+
+# Enable client IP restrictions in production
+restrict_ips = True
